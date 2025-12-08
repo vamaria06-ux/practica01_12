@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstddef>
 namespace top
 {
   struct p_t
@@ -9,18 +10,18 @@ namespace top
   {
     virtual p_t begin() const = 0;
     virtual p_t next(p_t) const = 0;
+    virtual ~IDraw() = default;
   };
   struct frame_t
   {
     p_t left_bot;
     p_t right_top;
   };
-  void make_f (IDraw** b,size_t k);
-  void get_points (IDraw* b, p_t ** ps, size_t &s);
-  frame_t build_frame(const p_t * ps, size_t s);
-  char * build_canvas(frame_t f);
-  void paint_canvas(char * cnv,frame_t fv, const p_t * ps, size_t k, char f);
-  void print_canvas(const char * cnv, frame_t fv);
+  size_t get_points (IDraw* b, p_t ** ps, size_t & s);
+  frame_t build_frame(const p_t * p, size_t s);
+  char * build_canvas(frame_t f, char fill);
+  void paint_canvas(char * cnv,top::frame_t fr, p_t p, char fill);
+  void print_canvas(const char * cnv, top::frame_t fr);
   bool operator == (p_t a, p_t b)
   {
     return a.x == b.x && a.y == b.y;
@@ -40,35 +41,41 @@ namespace top
 int main()
 {
   using namespace top;
+  int err = 0;
   IDraw * f[3] = {};
-  p_t * p = nullptr;
+  p_t * pts = nullptr;
   size_t s = 0;
   char * cnv = nullptr;
-  int err = 0;
   try
   {
-    make_f(f,3);
+    f[0] = new Dot(0,0);
+    f[1] = new Dot(3,3);
+    f[2] = new Dot(5,7);
     for (size_t i = 0; i < 3; ++i)
     {
-      get_points(f[i],&p,s);
+      get_points(f[i], &pts, s);
     }
-    frame_t fv= build_frame(p,s);
-    cnv = build_canvas(fv);
-    paint_canvas(cnv, fv, p, s , '#');
-    print_canvas(cnv, fv);
+    frame_t fr = build_frame(pts,s);
+    cnv = build_canvas(fr,'.');
+    for (size_t i=0; i<s;++i)
+    {
+      paint_canvas(cnv, fr, pts[i],'#');
+    }
+    print_canvas(cnv, fr);
+    delete[] pts;
+    delete[] cnv;
   } catch(...)
   {
     err = 1;
+    std::cerr << "Error\n";
   }
   delete f[0];
   delete f[1];
   delete f[2];
-  delete[] p;
-  delete[] cnv;
   return err;
 }
-void extend(p_t** pts, size_t s, p_t p) {
-  top::p_t* res = new p_t[s+1];
+void extend(top::p_t ** pts, size_t s, top::p_t p) {
+  top::p_t * res = new top::p_t[s+1];
   for (size_t i = 0;i < s; i++)
   {
     res[i]=(*pts)[i];
@@ -76,38 +83,69 @@ void extend(p_t** pts, size_t s, p_t p) {
   res[s] = p;
   delete [] *pts;
   *pts = res;
-size_t top::points(const IDraw& d, p_t** pts, size_t s)
+}
+size_t top::get_points(IDraw *b, p_t** pts, size_t & s)
 {
-  p_t* res = new p_t[upd_s];
+  p_t p = b ->begin();
   extend(pts, s ,p);
-  sixe_t delta = 1;
-  while (d.next(p) != d.begin()) {
-    p = d.next(p);
-    extend(pts, s+delta,p);
+  ++s;
+  size_t delta = 1;
+  while (b->next(p) != b->begin()) {
+    p = b->next(p);
+    extend(pts,s,p);
     ++delta;
   }
   return delta;
 }
-top::f_t top::frame(const p_t* pts, size_t s)
+top::frame_t top::build_frame(const p_t* p, size_t s)
 {
   if (!s)
   {
     throw std::logic_error("bad size");
   }
-  int minx = pts[0].x, maxx= minx;
-  int miny = pts[0].y, maxy = miny;
-  for (size_t i=1; i<s;i++)
+  int minx = p[0].x, maxx= minx;
+  int miny = p[0].y, maxy = miny;
+  for (size_t i = 1; i < s; i++)
   {
-    minx= std::min(minx,pts[i].x);
-    maxx= std::max(maxx, pts[i].x);
-    miny = std::min(miny, pts[i].y);
-    maxy = std::max(maxy, pts[i].y);
+    minx= std::min(minx,p[i].x);
+    maxx= std::max(maxx, p[i].x);
+    miny = std::min(miny, p[i].y);
+    maxy = std::max(maxy, p[i].y);
   }
-  p_t aa(minx,miny);
-  p_t bb(maxx,maxy);
-  return {aa,bb};
+  p_t aa = {minx,miny};
+  p_t bb = {maxx,maxy};
+  return frame_t{aa,bb};
 }
-
+size_t rows(top::frame_t fr) {
+  return (fr.right_top.y - fr.left_bot.y + 1);
+}
+size_t cols(top::frame_t fr) {
+  return (fr.right_top.x - fr.left_bot.x + 1);
+}
+char * top::build_canvas(top::frame_t fr, char fill)
+{
+  char* cnv = new char [rows(fr)*cols(fr)];
+  for (size_t i=0;i<rows(fr)*cols(fr); ++i)
+  {
+    cnv[i]=fill;
+  }
+  return cnv;
+}
+void top::paint_canvas(char* cnv,top::frame_t fr, top::p_t p, char fill) {
+  int dx = p.x - fr.left_bot.x;
+  int dy = fr.right_top.y - p.y;
+  cnv[dy*cols(fr)+dx] = fill;
+}
+void top::print_canvas(const char * cnv, top::frame_t fr) {
+  for (size_t i = 0; i < rows(fr);++i)
+  {
+    for(size_t j=0; j < cols(fr);++j)
+    {
+      std::cout<< cnv[i * cols(fr)+j];
+    }
+    std::cout << "\n";
+  }
+}
 top::Dot::Dot(int x, int y) :
   IDraw(),
   o{x,y}
