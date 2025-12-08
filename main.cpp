@@ -37,12 +37,18 @@ namespace top
     p_t o;
     Dot(int x, int y);
   };
+  struct Line : IDraw {
+    p_t begin() const override;
+    p_t next(p_t) const override;
+    std::vector<p_t> points;
+    Line(int x1, int y1, int x2, int y2);
+  };
 }
 int main()
 {
   using namespace top;
   int err = 0;
-  IDraw * f[3] = {};
+  IDraw * f[4] = {};
   p_t * pts = nullptr;
   size_t s = 0;
   char * cnv = nullptr;
@@ -51,6 +57,7 @@ int main()
     f[0] = new Dot(0,0);
     f[1] = new Dot(3,3);
     f[2] = new Dot(5,7);
+    f[3] = new Line(1,1,8,5);
     for (size_t i = 0; i < 3; ++i)
     {
       get_points(f[i], &pts, s);
@@ -72,6 +79,7 @@ int main()
   delete f[0];
   delete f[1];
   delete f[2];
+  delete f[3];
   return err;
 }
 void extend(top::p_t ** pts, size_t s, top::p_t p) {
