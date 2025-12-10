@@ -18,7 +18,7 @@ namespace top
     p_t right_top;
   };
   void make_f(IDraw ** b,size_t k);
-  size_t get_points (IDraw* b, p_t ** ps, size_t & s);
+  void get_points (IDraw* b, p_t ** ps, size_t & s);
   frame_t build_frame(const p_t * p, size_t s);
   char * build_canvas(frame_t f, char fill);
   void paint_canvas(char * cnv,top::frame_t fr, p_t p, char fill);
@@ -101,8 +101,8 @@ int main()
 }
 void top::make_f(IDraw ** b, size_t k)
 {
-  b[0] = new HorSeg({0,0},4);
-  b[1] = new VerSeg({5,-3},6);
+  b[0] = new HorSeg({0,0},5);
+  b[1] = new VerSeg({4,1},6);
   b[2] = new DiagSeg({-12,5},9);
   b[3] = new Dot(3,3);
 }
@@ -116,18 +116,17 @@ void extend(top::p_t ** pts, size_t s, top::p_t p) {
   delete [] *pts;
   *pts = res;
 }
-size_t top::get_points(IDraw *b, p_t** pts, size_t & s)
+void top::get_points(IDraw *b, p_t** pts, size_t & s)
 {
   p_t p = b ->begin();
   extend(pts, s ,p);
-  ++s;
   size_t delta = 1;
   while (b->next(p) != b->begin()) {
     p = b->next(p);
-    extend(pts,s,p);
+    extend(pts,s + delta,p);
     ++delta;
   }
-  return delta;
+  s += delta;
 }
 top::frame_t top::build_frame(const p_t* p, size_t s)
 {
