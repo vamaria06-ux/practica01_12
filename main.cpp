@@ -17,6 +17,7 @@ namespace top
     p_t left_bot;
     p_t right_top;
   };
+  void make_f(IDraw ** b,size_t k);
   size_t get_points (IDraw* b, p_t ** ps, size_t & s);
   frame_t build_frame(const p_t * p, size_t s);
   char * build_canvas(frame_t f, char fill);
@@ -35,13 +36,32 @@ namespace top
     p_t begin() const override;
     p_t next(p_t) const override;
     p_t o;
+    explicit Dot(p_t dd);
     Dot(int x, int y);
   };
-  struct Line : IDraw {
+  struct VerSeg:IDraw
+  {
     p_t begin() const override;
     p_t next(p_t) const override;
-    std::vector<p_t> points;
-    Line(int x1, int y1, int x2, int y2);
+    p_t start_v;
+    size_t len_v;
+    VerSeg(p_t,size_t);
+  };
+  struct HorSeg:IDraw
+  {
+    p_t begin() const override;
+    p_t next(p_t) const override;
+    p_t start_h;
+    size_t len_h;
+    HorSeg(p_t,size_t);
+  };
+  struct DiagSeg:IDraw
+  {
+    p_t begin() const override;
+    p_t next(p_t) const override;
+    p_t start_d;
+    size_t len_d;
+    DiagSeg(p_t,size_t);
   };
 }
 int main()
@@ -54,11 +74,8 @@ int main()
   char * cnv = nullptr;
   try
   {
-    f[0] = new Dot(0,0);
-    f[1] = new Dot(3,3);
-    f[2] = new Dot(5,7);
-    f[3] = new Line(1,1,8,5);
-    for (size_t i = 0; i < 3; ++i)
+    make_f(f,4);
+    for (size_t i = 0; i < 4; ++i)
     {
       get_points(f[i], &pts, s);
     }
@@ -81,6 +98,13 @@ int main()
   delete f[2];
   delete f[3];
   return err;
+}
+void top::make_f(IDraw ** b, size_t k)
+{
+  b[0] = new HorSeg({0,0},4);
+  b[1] = new VerSeg({5,-3},6);
+  b[2] = new DiagSeg({-12,5},9);
+  b[3] = new Dot(3,3);
 }
 void extend(top::p_t ** pts, size_t s, top::p_t p) {
   top::p_t * res = new top::p_t[s+1];
@@ -166,4 +190,60 @@ top::p_t top::Dot::begin() const
 top::p_t top::Dot::next(p_t) const
 {
   return begin();
+}
+top::Dot::Dot(p_t dd):
+  IDraw(),
+  o{dd}
+{
+}
+top::DiagSeg::DiagSeg(p_t a, size_t b):
+  start_d(a),
+  len_d(b)
+{
+}
+top::p_t top::DiagSeg::begin() const
+{
+  return start_d;
+}
+top::p_t top::DiagSeg::next(p_t a) const
+{
+  if (a.x + 1 == start_d.x + len_d && a.y + 1 == start_d.y + len_d)
+  {
+    return begin();
+  }
+  return {a.x +1 , a.y + 1};
+}
+top::HorSeg::HorSeg(p_t a, size_t b):
+  start_h(a),
+  len_h(b)
+{
+}
+top::p_t top::HorSeg::begin() const
+{
+  return start_h;
+}
+top::p_t top::HorSeg::next(p_t a) const
+{
+  if (a.x + 1 == start_h.x + len_h)
+  {
+    return begin();
+  }
+  return {a.x + 1,a.y};
+}
+top::VerSeg::VerSeg(p_t a, size_t b):
+  start_v(a),
+  len_v(b)
+{
+}
+top::p_t top::VerSeg::begin() const
+{
+  return start_v;
+}
+top::p_t top::VerSeg::next(p_t a) const
+{
+  if (a.y + 1 == start_v.y + len_v)
+  {
+    return begin();
+  }
+  return {a.x, a.y + 1};
 }
